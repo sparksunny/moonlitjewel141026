@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Moonlit Jewelry — Luxury Jewelry, Timeless Elegance</title>
+    <meta name="description" content="Luxury Jewelry, Timeless Elegance. Handcrafted luxury jewelry, fine precious metals, and bespoke designs inspired by timeless elegance." />
+    <meta property="og:title" content="Moonlit Jewelry — Luxury Jewelry, Timeless Elegance" />
+    <meta property="og:description" content="Luxury Jewelry, Timeless Elegance. Handcrafted luxury jewelry, fine precious metals, and bespoke designs inspired by timeless elegance." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- Prevent stale browser caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <script>
+      (function() {
+        try {
+          // 1. Force refresh if loaded from browser back-forward cache (mobile iOS/Android)
+          window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+              window.location.reload();
+            }
+          });
+
+          // 2. Ensure initial load is 100% fresh from server with no previous cache
+          var syncKey = 'moonlit_auto_fresh_v2';
+          var hasFreshLoad = sessionStorage.getItem(syncKey);
+          var hasFreshParam = window.location.search.indexOf('_fresh=') !== -1;
+
+          if (!hasFreshLoad && !hasFreshParam) {
+            sessionStorage.setItem(syncKey, 'true');
+            var url = new URL(window.location.href);
+            url.searchParams.set('_fresh', Date.now());
+            window.location.replace(url.toString());
+          } else if (hasFreshParam) {
+            sessionStorage.setItem(syncKey, 'true');
+            // Clean URL query after loading completes
+            window.addEventListener('DOMContentLoaded', function() {
+              setTimeout(function() {
+                try {
+                  var clean = window.location.pathname + window.location.hash;
+                  window.history.replaceState({}, document.title, clean);
+                } catch(e) {}
+              }, 1200);
+            });
+          }
+        } catch(e) {}
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="bg-[#fffbe8] text-black antialiased selection:bg-[#E8DFC8] selection:text-black">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

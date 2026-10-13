@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Luxury jewelry catalog item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "articleNo": { "type": "string" },
+        "name": { "type": "string" },
+        "handle": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "galleryImages": { "type": "array" },
+        "shortDescription": { "type": "string" },
+        "description": { "type": "string" },
+        "availability": { "type": "string" },
+        "featured": { "type": "boolean" },
+        "isNew": { "type": "boolean" },
+        "material": { "type": "string" },
+        "tags": { "type": "array" },
+        "visible": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "image"]
+    },
+    "SiteContent": {
+      "title": "SiteContent",
+      "description": "Global storefront branding, contact info, and copy",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "slogan": { "type": "string" },
+        "heroHeading": { "type": "string" },
+        "heroSubheading": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "CustomerInquiry": {
+      "title": "CustomerInquiry",
+      "description": "Customer inquiry submission for jewelry pieces",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["fullName", "email", "message"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Jewelry pieces displayed on the storefront"
+    },
+    "/site_content/{contentId}": {
+      "schema": { "$ref": "#/entities/SiteContent" },
+      "description": "Storefront configuration and copy"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/CustomerInquiry" },
+      "description": "Customer concierge inquiry requests"
+    }
+  }
+}

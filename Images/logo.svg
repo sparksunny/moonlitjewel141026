@@ -1,0 +1,42 @@
+<svg viewBox="0 0 500 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="silverSheen" x1="85%" y1="15%" x2="15%" y2="85%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="25%" stop-color="#EDEDEE" />
+      <stop offset="55%" stop-color="#D2D2D6" />
+      <stop offset="85%" stop-color="#B5B5B9" />
+      <stop offset="100%" stop-color="#9E9EA3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Outer circular medallion with metallic silver gradient -->
+  <circle cx="250" cy="250" r="236" fill="url(#silverSheen)" stroke="#000000" stroke-width="6" />
+
+  <!-- Top 4-point star -->
+  <path d="M 250 35 Q 250 56 232 56 Q 250 56 250 77 Q 250 56 268 56 Q 250 56 250 35 Z" fill="#000000" />
+
+  <!-- Crown / Diamond facet fan -->
+  <polygon points="250,86 256,132 250,206 244,132" fill="#000000" />
+  <polygon points="263,89 274,135 254,204 251,202" fill="#000000" />
+  <polygon points="280,97 296,142 258,203 255,200" fill="#000000" />
+  <polygon points="302,108 322,152 262,201 259,198" fill="#000000" />
+  <polygon points="328,124 350,165 266,198 263,195" fill="#000000" />
+  <polygon points="237,89 226,135 246,204 249,202" fill="#000000" />
+  <polygon points="220,97 204,142 242,203 245,200" fill="#000000" />
+  <polygon points="198,108 178,152 238,201 241,198" fill="#000000" />
+  <polygon points="172,124 150,165 234,198 237,195" fill="#000000" />
+
+  <!-- Upper Red Triangles -->
+  <polygon points="63,112 195,257 63,257" fill="#B30B0B" />
+  <polygon points="437,112 305,257 437,257" fill="#B30B0B" />
+
+  <!-- Lower Black Geometric M Monogram -->
+  <rect x="63" y="257" width="56" height="103" fill="#000000" />
+  <rect x="381" y="257" width="56" height="103" fill="#000000" />
+  <polygon points="119,257 250,405 381,257 326,257 250,344 174,257" fill="#000000" />
+  <polygon points="144,324 163,360 119,360" fill="#000000" />
+  <polygon points="356,324 337,360 381,360" fill="#000000" />
+
+  <!-- Bottom Brand Text -->
+  <text x="250" y="437" text-anchor="middle" font-family="'Century Gothic', 'Montserrat', 'Inter', system-ui, -apple-system, sans-serif" font-size="33" font-weight="400" letter-spacing="0.08em" fill="#000000">Moonlit  jewels</text>
+</svg>

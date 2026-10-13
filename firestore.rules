@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Products collection: publicly readable across all devices, editable by atelier admin
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Site content: publicly readable across all devices, editable by atelier admin
+    match /site_content/{contentId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Customer inquiries: publicly submittable
+    match /inquiries/{inquiryId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if true;
+    }
+
+    // Default deny all other paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

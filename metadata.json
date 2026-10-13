@@ -1,0 +1,8 @@
+{
+  "name": "Moonlit Luxury Jewelry ",
+  "description": "Real Jewelry. Timeless Beauty. Handcrafted luxury jewelry, fine precious metals, and bespoke designs inspired by timeless elegance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

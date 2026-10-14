@@ -6,14 +6,12 @@ interface HeroProps {
   content: SiteContent;
   onExplore?: () => void;
   onContact?: () => void;
-  isAdmin?: boolean;
-  onEditContent?: () => void;
 }
 
 export const Hero: React.FC<HeroProps> = ({
   content,
-  isAdmin = false,
-  onEditContent
+  onExplore,
+  onContact
 }) => {
   return (
     <section className="relative bg-[#fffbe8] text-black border-b border-[#e2d9bc] w-full">
@@ -34,18 +32,6 @@ export const Hero: React.FC<HeroProps> = ({
           {content.heroSubheading}
         </p>
 
-        {isAdmin && onEditContent && (
-          <div className="mt-4">
-            <button
-              onClick={onEditContent}
-              className="px-4 py-2 bg-[#7E5C1E] text-[#FAF6EE] hover:bg-[#684A14] text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs cursor-pointer border border-[#DECFA9]"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#F5EACB]" />
-              <span>Edit Hero & Brand Text</span>
-            </button>
-          </div>
-        )}
-
         {/* Trust Badges Bar */}
         <div className="mt-8 sm:mt-12 md:mt-16 pt-6 sm:pt-8 border-t border-black/15 w-full grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 text-black text-xs sm:text-sm font-sans">
           <div className="flex items-center gap-2.5 sm:gap-3">
@@ -58,22 +44,22 @@ export const Hero: React.FC<HeroProps> = ({
           <div className="flex items-center gap-2.5 sm:gap-3">
             <ShieldCheck className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-black shrink-0" />
             <div>
-              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Authentic Pedigree</p>
-              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Pure Precious Metals</p>
+              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Certified Genuine</p>
+              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Authenticity Guaranteed</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 sm:gap-3">
             <Sparkles className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-black shrink-0" />
             <div>
-              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Bespoke Sizing</p>
-              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Custom Atelier Commissions</p>
+              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Artisanal Handcraft</p>
+              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Bespoke Precision</p>
             </div>
           </div>
           <div className="flex items-center gap-2.5 sm:gap-3">
             <Clock className="w-4.5 h-4.5 sm:w-5 sm:h-5 text-black shrink-0" />
             <div>
-              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Personal Concierge</p>
-              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Direct WhatsApp Assistance</p>
+              <p className="font-bold text-black tracking-wide uppercase text-[10.5px] sm:text-[11px]">Direct Atelier Inquiry</p>
+              <p className="text-[10px] sm:text-[11px] text-stone-800 font-semibold">Instant WhatsApp Service</p>
             </div>
           </div>
         </div>

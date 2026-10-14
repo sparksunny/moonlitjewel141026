@@ -7,7 +7,10 @@ import {
   X,
   Upload,
   Settings,
-  RefreshCw
+  RefreshCw,
+  FolderPlus,
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
@@ -25,6 +28,9 @@ interface CollectionGridProps {
   onSaveProduct?: (product: Product) => Promise<boolean>;
   onAddProduct?: (product: Product) => Promise<boolean>;
   onDeleteProduct?: (productId: string) => Promise<boolean>;
+  onAddCategory?: (category: string) => Promise<boolean>;
+  onEditCategory?: (oldCategory: string, newCategory: string) => Promise<boolean>;
+  onDeleteCategory?: (category: string) => Promise<boolean>;
   onOpenAdminConsole?: () => void;
 }
 
@@ -41,9 +47,19 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
   onSaveProduct,
   onAddProduct,
   onDeleteProduct,
+  onAddCategory,
+  onEditCategory,
+  onDeleteCategory,
   onOpenAdminConsole
 }) => {
-  // Add new record form state in admin mode
+  // Category management modals state
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [addCategoryName, setAddCategoryName] = useState('');
+  const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
+
+  // Add new product record form state in admin mode
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newArticleNo, setNewArticleNo] = useState('');
@@ -148,6 +164,49 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
     } else {
       setNewRecordNotice('Failed to verify record update. Please check server connection.');
       setNewRecordSuccess(false);
+    }
+  };
+
+  // Category Actions
+  const handleSaveAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onAddCategory || !addCategoryName.trim()) return;
+    setIsSavingCategory(true);
+    const ok = await onAddCategory(addCategoryName.trim());
+    setIsSavingCategory(false);
+    if (ok) {
+      setAddCategoryName('');
+      setIsAddingCategory(false);
+    }
+  };
+
+  const handleSaveEditCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onEditCategory || !editCategoryName.trim()) return;
+    setIsSavingCategory(true);
+    const ok = await onEditCategory(selectedCategory, editCategoryName.trim());
+    setIsSavingCategory(false);
+    if (ok) {
+      setIsEditingCategory(false);
+    }
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!onDeleteCategory) return;
+    const count = products.filter(
+      (p) => (p.category || '').toLowerCase() === selectedCategory.toLowerCase()
+    ).length;
+    const msg =
+      count > 0
+        ? `Are you sure you want to delete category "${selectedCategory}"? ${count} product(s) in this category will be moved to "Wedding Bands & Rings".`
+        : `Are you sure you want to delete category "${selectedCategory}"?`;
+    if (window.confirm(msg)) {
+      setIsSavingCategory(true);
+      const ok = await onDeleteCategory(selectedCategory);
+      setIsSavingCategory(false);
+      if (ok) {
+        onSelectCategory('All Jewelry');
+      }
     }
   };
 
@@ -259,10 +318,10 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <div>
               <span className="text-xs font-sans font-bold uppercase tracking-wider text-[#44331C]">
-                Admin Edit Mode Active
+                Admin Catalog Mode Active
               </span>
               <p className="text-[11px] text-[#7E6649] font-sans">
-                Click any jewelry piece to edit Category & details with the Save button on its detail page.
+                Manage Categories & Products with Add, Edit, and Delete options. Click any piece to edit details with Save button.
               </p>
             </div>
           </div>
@@ -273,17 +332,17 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
               className="flex-1 sm:flex-initial px-4 py-2 bg-black hover:bg-[#88641C] text-white text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
               <Plus className="w-4 h-4 text-white" />
-              <span>+ Add Record to Category</span>
+              <span>+ Add Product</span>
             </button>
 
             {onOpenAdminConsole && (
               <button
                 onClick={onOpenAdminConsole}
                 className="px-3 py-2 bg-[#FAF6EE] hover:bg-[#EBDCB4] text-[#5A4112] border border-[#DECFA9] text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                title="Open Admin Dashboard to edit anything on website (Texts, Images, Categories, Inquiries)"
+                title="Open Admin Console for full catalog management"
               >
                 <Settings className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Admin Dashboard</span>
+                <span className="hidden md:inline">Catalog Admin</span>
               </button>
             )}
           </div>
@@ -494,6 +553,175 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Category Management Controls in Admin Mode */}
+      {isAdmin && (
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3 p-3 bg-[#FAF6EE] border border-[#DECFA9] text-xs font-sans shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-[#44331C] uppercase tracking-wider text-[11px]">Active Category:</span>
+            <span className="font-bold px-2.5 py-1 bg-white border border-[#DECFA9] text-[#7E5C1E] shadow-2xs">
+              {selectedCategory}
+            </span>
+          </div>
+
+          <div className="flex items-center flex-wrap gap-2">
+            <button
+              onClick={() => {
+                setAddCategoryName('');
+                setIsAddingCategory(true);
+              }}
+              className="px-3 py-1.5 bg-[#7E5C1E] hover:bg-[#684A14] text-white text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="Add a new category"
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-[#F5EACB]" />
+              <span>+ Add Category</span>
+            </button>
+
+            {selectedCategory !== 'All Jewelry' && (
+              <>
+                <button
+                  onClick={() => {
+                    setEditCategoryName(selectedCategory);
+                    setIsEditingCategory(true);
+                  }}
+                  className="px-3 py-1.5 bg-white hover:bg-black text-[#5A4112] hover:text-white border border-[#DECFA9] hover:border-black text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  title={`Edit or rename category "${selectedCategory}"`}
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-current" />
+                  <span>Edit Category</span>
+                </button>
+
+                <button
+                  onClick={handleConfirmDeleteCategory}
+                  disabled={isSavingCategory}
+                  className="px-3 py-1.5 bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-300 hover:border-red-700 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                  title={`Delete category "${selectedCategory}"`}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-current" />
+                  <span>Delete Category</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Category */}
+      {isAdmin && isAddingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-[#FAF6EE] border-2 border-black p-6 w-full max-w-md shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#EADBBD] pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <FolderPlus className="w-4 h-4 text-[#88641C]" />
+                <h3 className="font-serif text-base font-bold text-black uppercase tracking-wider">
+                  Add New Category
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsAddingCategory(false)}
+                className="text-stone-500 hover:text-black cursor-pointer p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAddCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black mb-1">
+                  Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={addCategoryName}
+                  onChange={(e) => setAddCategoryName(e.target.value)}
+                  placeholder="e.g. Royal Chokers, Solitaires, Nose Pins..."
+                  className="w-full bg-white border border-black px-3 py-2 text-xs font-sans text-black font-semibold focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddingCategory(false)}
+                  className="px-4 py-2 bg-white hover:bg-stone-200 text-black border border-black text-xs font-bold uppercase tracking-wider cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCategory}
+                  className="px-5 py-2 bg-black hover:bg-[#88641C] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Category</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Category */}
+      {isAdmin && isEditingCategory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-[#FAF6EE] border-2 border-black p-6 w-full max-w-md shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-[#EADBBD] pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-[#88641C]" />
+                <h3 className="font-serif text-base font-bold text-black uppercase tracking-wider">
+                  Edit / Rename Category
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditingCategory(false)}
+                className="text-stone-500 hover:text-black cursor-pointer p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditCategory} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black mb-1">
+                  New Category Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  value={editCategoryName}
+                  onChange={(e) => setEditCategoryName(e.target.value)}
+                  placeholder="Enter new category name..."
+                  className="w-full bg-white border border-black px-3 py-2 text-xs font-sans text-black font-semibold focus:outline-none"
+                />
+                <p className="text-[10px] text-stone-600 mt-1">
+                  All products currently under "{selectedCategory}" will be updated to the new name.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingCategory(false)}
+                  className="px-4 py-2 bg-white hover:bg-stone-200 text-black border border-black text-xs font-bold uppercase tracking-wider cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCategory}
+                  className="px-5 py-2 bg-black hover:bg-[#88641C] text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Save Changes</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Category Quick Tabs Strip */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 mb-8 bg-[#FAF6EE] p-3 sm:p-4 border border-[#EADBBD]">

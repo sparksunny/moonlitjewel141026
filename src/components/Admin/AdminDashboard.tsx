@@ -51,7 +51,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onClose,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'images' | 'text' | 'pricing' | 'inquiries'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'inquiries'>('products');
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [content, setContent] = useState<SiteContent>(initialContent);
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>(() => storage.getInquiries());
@@ -262,12 +262,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   };
 
   const handleDeleteCategory = (catName: string) => {
-    const count = products.filter((p) => (p.category || '').toLowerCase() === catName.toLowerCase()).length;
-    if (count > 0) {
-      alert(`Cannot delete category "${catName}" because it contains ${count} product(s). Move or delete the products first.`);
-      return;
+    const prodsInCat = products.filter((p) => (p.category || '').toLowerCase() === catName.toLowerCase());
+    let promptMsg = `Are you sure you want to delete category "${catName}"?`;
+    if (prodsInCat.length > 0) {
+      promptMsg = `Category "${catName}" contains ${prodsInCat.length} product(s). Deleting it will move these products to "Wedding Bands & Rings". Proceed?`;
     }
-    if (window.confirm(`Are you sure you want to delete category "${catName}"?`)) {
+    if (window.confirm(promptMsg)) {
+      let updatedProducts = products;
+      if (prodsInCat.length > 0) {
+        updatedProducts = products.map((p) =>
+          (p.category || '').toLowerCase() === catName.toLowerCase()
+            ? { ...p, category: 'Wedding Bands & Rings', updatedAt: Date.now() }
+            : p
+        );
+        setProducts(updatedProducts);
+        onSaveProducts(updatedProducts);
+        storage.saveProducts(updatedProducts);
+        apiClient.saveProducts(updatedProducts).catch((e) => console.error(e));
+        cloudDb.saveAllProducts(updatedProducts).catch((e) => console.error(e));
+      }
+
       const updatedCustom = (content.customCategories || []).filter(
         (c) => c.toLowerCase() !== catName.toLowerCase()
       );
@@ -275,8 +289,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setContent(updatedContent);
       onSaveContent(updatedContent);
       storage.saveContent(updatedContent);
+      apiClient.saveContent(updatedContent).catch((e) => console.error(e));
       cloudDb.saveSiteContent(updatedContent).catch((e) => console.error(e));
-      showNotice(`Category "${catName}" removed.`);
+      showNotice(`Category "${catName}" removed successfully.`);
     }
   };
 
@@ -550,9 +565,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         {[
           { id: 'products', label: 'Products Catalog', icon: List, count: products.length },
           { id: 'categories', label: 'Categories', icon: Layers, count: allCategories.length },
-          { id: 'images', label: 'Image Management', icon: ImageIcon },
-          { id: 'text', label: 'Website Content & Branding', icon: Type },
-          { id: 'pricing', label: 'Currency & Pricing', icon: DollarSign },
           { id: 'inquiries', label: 'Customer Inquiries', icon: MessageSquare, count: inquiries.length }
         ].map((tab) => {
           const Icon = tab.icon;
@@ -870,16 +882,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         Rename
                       </button>
 
-                      {!isCore && prodsInCat.length === 0 && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCategory(cat)}
-                          className="px-2 py-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 text-[11px] font-sans transition-colors cursor-pointer ml-auto"
-                          title="Delete empty category"
-                        >
-                          Delete
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCategory(cat)}
+                        className="px-2 py-1.5 text-red-600 hover:text-red-900 hover:bg-red-50 text-[11px] font-sans transition-colors cursor-pointer ml-auto"
+                        title={`Delete category "${cat}"`}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 );
@@ -888,479 +898,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           </div>
         )}
 
-        {/* ============================================================ */}
-        {/* TAB 3: IMAGE MANAGEMENT */}
-        {/* ============================================================ */}
-        {activeTab === 'images' && (
-          <div className="max-w-7xl mx-auto space-y-6">
-            <div className="bg-white p-6 border border-stone-200">
-              <h3 className="font-serif text-xl font-medium text-[#44331C] mb-2">
-                Brand Logo & Storefront Visual Assets
-              </h3>
-              <p className="text-xs text-stone-500 font-sans mb-6">
-                Upload or replace the Moonlit Jewelry logo emblem, hero background, and craftsmanship showcase banners.
-              </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Brand Logo Replacement */}
-                <div className="p-4 border border-stone-200 bg-[#FAF9F5] flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-sans font-semibold text-xs tracking-wider uppercase text-stone-800 mb-2">
-                      Brand Logo Emblem
-                    </h4>
-                    <p className="text-[11px] text-stone-500 mb-4">
-                      {content.logoUrl ? 'Using custom uploaded logo image.' : 'Using uploaded Moonlit vector emblem.'}
-                    </p>
-                    <div className="w-24 h-24 mx-auto mb-4 bg-white border border-stone-300 flex items-center justify-center p-2">
-                      {content.logoUrl ? (
-                        <img src={content.logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
-                      ) : (
-                        <span className="text-[10px] text-stone-400 text-center uppercase tracking-widest">
-                          Original Vector Logo
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block w-full py-2 bg-[#7E5C1E] text-[#FAF6EE] text-center text-xs uppercase tracking-wider font-bold cursor-pointer hover:bg-[#684A14] shadow-xs">
-                      <span>Upload Logo File</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) =>
-                          handleImageFileUpload(e, (url) => setContent({ ...content, logoUrl: url }))
-                        }
-                      />
-                    </label>
-                    {content.logoUrl && (
-                      <button
-                        onClick={() => setContent({ ...content, logoUrl: '' })}
-                        className="w-full py-1 text-xs text-red-600 hover:underline"
-                      >
-                        Reset to Vector Logo
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Hero Banner Image */}
-                <div className="p-4 border border-stone-200 bg-[#FAF9F5] flex flex-col justify-between">
-                  <div>
-                    <h4 className="font-sans font-semibold text-xs tracking-wider uppercase text-stone-800 mb-2">
-                      Hero Banner Image
-                    </h4>
-                    <div className="aspect-video w-full mb-4 bg-stone-200 overflow-hidden border border-stone-300">
-                      <img
-                        src={content.heroImage}
-                        alt="Hero Preview"
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                  </div>
-
-                  <label className="block w-full py-2 bg-[#7E5C1E] text-[#FAF6EE] text-center text-xs uppercase tracking-wider font-bold cursor-pointer hover:bg-[#684A14] shadow-xs">
-                    <span>Upload New Hero Image</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) =>
-                        handleImageFileUpload(e, (url) => setContent({ ...content, heroImage: url }))
-                      }
-                    />
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Product Image Selector */}
-            <div className="bg-white p-6 border border-stone-200">
-              <h3 className="font-serif text-xl font-medium text-[#44331C] mb-2">
-                Product Image Catalog
-              </h3>
-              <p className="text-xs text-stone-500 font-sans mb-4">
-                Click any product to manage its main photo or add/reorder gallery images.
-              </p>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
-                {products.slice(0, 18).map((p) => (
-                  <div
-                    key={p.id}
-                    onClick={() => {
-                      setEditingProduct(p);
-                      setIsAddingNew(false);
-                    }}
-                    className="p-2 border border-stone-200 hover:border-[#7E5C1E] transition-colors cursor-pointer group bg-[#FAF8F5]"
-                  >
-                    <div className="aspect-square bg-white overflow-hidden mb-1.5 border border-stone-200">
-                      <img
-                        src={p.image}
-                        alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                        referrerPolicy="no-referrer"
-                      />
-                    </div>
-                    <p className="font-serif text-xs font-medium text-[#44331C] truncate">
-                      {p.name}
-                    </p>
-                    <p className="text-[10px] text-stone-400">
-                      {p.galleryImages?.length || 1} Images
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Save Visual Assets Button */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onSaveContent(content);
-                  storage.saveContent(content);
-                  cloudDb.saveSiteContent(content).catch(() => {});
-                  showNotice('Brand Logo & Hero Visual Assets saved & synced!');
-                }}
-                className="px-6 py-2.5 bg-[#7E5C1E] text-[#FAF6EE] hover:bg-[#684A14] text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Save className="w-4 h-4 text-[#C29B38]" />
-                <span>Save Visual Assets & Branding</span>
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* ============================================================ */}
-        {/* TAB 3: TEXT MANAGEMENT & BRANDING */}
-        {/* ============================================================ */}
-        {activeTab === 'text' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white p-6 border border-stone-200 space-y-6">
-              <h3 className="font-serif text-xl font-medium text-[#44331C] border-b border-stone-100 pb-3">
-                Brand Identity & Copy
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={content.companyName}
-                    onChange={(e) => setContent({ ...content, companyName: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Brand Slogan
-                  </label>
-                  <input
-                    type="text"
-                    value={content.slogan}
-                    onChange={(e) => setContent({ ...content, slogan: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                  Hero Headline
-                </label>
-                <input
-                  type="text"
-                  value={content.heroHeading}
-                  onChange={(e) => setContent({ ...content, heroHeading: e.target.value })}
-                  className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                  Hero Supporting Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={content.heroSubheading}
-                  onChange={(e) => setContent({ ...content, heroSubheading: e.target.value })}
-                  className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Primary CTA Button Text
-                  </label>
-                  <input
-                    type="text"
-                    value={content.heroCtaPrimary}
-                    onChange={(e) => setContent({ ...content, heroCtaPrimary: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Secondary CTA Button Text
-                  </label>
-                  <input
-                    type="text"
-                    value={content.heroCtaSecondary}
-                    onChange={(e) => setContent({ ...content, heroCtaSecondary: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact & Footer Information */}
-            <div className="bg-white p-6 border border-stone-200 space-y-6">
-              <h3 className="font-serif text-xl font-medium text-[#44331C] border-b border-stone-100 pb-3">
-                Official Contact & Footer Details
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="text"
-                    value={content.phone}
-                    onChange={(e) => setContent({ ...content, phone: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    WhatsApp Number
-                  </label>
-                  <input
-                    type="text"
-                    value={content.whatsapp}
-                    onChange={(e) => setContent({ ...content, whatsapp: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Atelier Email
-                  </label>
-                  <input
-                    type="email"
-                    value={content.email}
-                    onChange={(e) => setContent({ ...content, email: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Instagram Handle
-                  </label>
-                  <input
-                    type="text"
-                    value={content.instagram}
-                    onChange={(e) => setContent({ ...content, instagram: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                  Atelier Address
-                </label>
-                <input
-                  type="text"
-                  value={content.address}
-                  onChange={(e) => setContent({ ...content, address: e.target.value })}
-                  className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                  Footer Narrative
-                </label>
-                <textarea
-                  rows={3}
-                  value={content.footerText}
-                  onChange={(e) => setContent({ ...content, footerText: e.target.value })}
-                  className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                />
-              </div>
-
-              {/* SEO Meta */}
-              <div className="pt-4 border-t border-stone-100 space-y-4">
-                <h4 className="font-serif text-base font-medium text-[#44331C]">
-                  Search Engine Optimization (SEO)
-                </h4>
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    SEO Meta Title
-                  </label>
-                  <input
-                    type="text"
-                    value={content.seoTitle}
-                    onChange={(e) => setContent({ ...content, seoTitle: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    SEO Meta Description
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={content.seoDescription}
-                    onChange={(e) => setContent({ ...content, seoDescription: e.target.value })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Save Website Content Button */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onSaveContent(content);
-                  storage.saveContent(content);
-                  cloudDb.saveSiteContent(content).catch(() => {});
-                  showNotice('Website text, branding, and contact info saved & synced!');
-                }}
-                className="px-6 py-2.5 bg-[#7E5C1E] text-[#FAF6EE] hover:bg-[#684A14] text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Save className="w-4 h-4 text-[#C29B38]" />
-                <span>Save Website Content & Branding</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* TAB 4: PRICING & CURRENCY */}
-        {/* ============================================================ */}
-        {activeTab === 'pricing' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bg-white p-6 border border-stone-200 space-y-6">
-              <h3 className="font-serif text-xl font-medium text-[#44331C] border-b border-stone-100 pb-3">
-                Storefront Currency & Global Exchange Rates
-              </h3>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Default Display Currency
-                  </label>
-                  <select
-                    value={content.currency}
-                    onChange={(e) => setContent({ ...content, currency: e.target.value as any })}
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans"
-                  >
-                    <option value="PKR">Pakistani Rupee (PKR - Rs.)</option>
-                    <option value="USD">United States Dollar (USD - $)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-sans tracking-wider uppercase text-stone-600 font-semibold mb-1">
-                    Exchange Rate (1 USD = X PKR)
-                  </label>
-                  <input
-                    type="number"
-                    value={content.pkrToUsdRate}
-                    onChange={(e) =>
-                      setContent({ ...content, pkrToUsdRate: parseFloat(e.target.value) || 278 })
-                    }
-                    className="w-full bg-[#FAF9F5] border border-stone-300 px-3 py-2 text-xs font-sans tabular-nums"
-                  />
-                </div>
-              </div>
-
-              {/* Bulk Price Adjustment tool */}
-              <div className="pt-6 border-t border-stone-100">
-                <h4 className="font-serif text-base font-medium text-[#44331C] mb-2">
-                  Catalog Price Adjustment
-                </h4>
-                <p className="text-xs text-stone-500 font-sans mb-4">
-                  Apply a global percentage increase or discount across all {products.length} products.
-                </p>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Apply a 10% discount to all current prices?')) {
-                        setProducts(
-                          products.map((p) => ({
-                            ...p,
-                            originalPrice: p.price ?? 0,
-                            price: Math.round((p.price ?? 0) * 0.9)
-                          }))
-                        );
-                        showNotice('Applied 10% discount to all products.');
-                      }
-                    }}
-                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-sans uppercase tracking-wider"
-                  >
-                    Apply 10% Storewide Discount
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Apply a 5% inflation/price adjustment to all products?')) {
-                        setProducts(
-                          products.map((p) => ({
-                            ...p,
-                            price: Math.round((p.price ?? 0) * 1.05)
-                          }))
-                        );
-                        showNotice('Adjusted prices +5%.');
-                      }
-                    }}
-                    className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-sans uppercase tracking-wider"
-                  >
-                    Apply +5% Price Adjustment
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Save Pricing & Currency Configuration */}
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  onSaveContent(content);
-                  onSaveProducts(products);
-                  storage.saveContent(content);
-                  storage.saveProducts(products);
-                  cloudDb.saveSiteContent(content).catch(() => {});
-                  cloudDb.saveAllProducts(products).catch(() => {});
-                  showNotice('Pricing, exchange rates, and catalog values saved & synced!');
-                }}
-                className="px-6 py-2.5 bg-[#7E5C1E] text-[#FAF6EE] hover:bg-[#684A14] text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs"
-              >
-                <Save className="w-4 h-4 text-[#C29B38]" />
-                <span>Save Pricing & Currency Configuration</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ============================================================ */}
-        {/* TAB 5: INQUIRIES */}
+        {/* TAB 3: CUSTOMER INQUIRIES */}
         {/* ============================================================ */}
         {activeTab === 'inquiries' && (
           <div className="max-w-6xl mx-auto space-y-6">

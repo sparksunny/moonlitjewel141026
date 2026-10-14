@@ -141,7 +141,7 @@ export default function App() {
     setAdminLoginOpen(false);
     setAdminDashboardOpen(true); // Allow editing anything on this website as in previous mode
 
-    setToastMessage('Admin Mode Active: Edit anything in the dashboard, or edit products in the detail view.');
+    setToastMessage('Admin Mode Active: Add, Edit, or Delete options available for Categories & Products.');
     setTimeout(() => setToastMessage(null), 4500);
   };
 
@@ -218,6 +218,102 @@ export default function App() {
       console.error('Failed to delete product:', err);
       return false;
     }
+  };
+
+  // Category management handlers
+  const handleAddCategory = async (catName: string): Promise<boolean> => {
+    const trimmed = catName.trim();
+    if (!trimmed) return false;
+    if (activeCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setToastMessage(`Category "${trimmed}" already exists.`);
+      setTimeout(() => setToastMessage(null), 3000);
+      return false;
+    }
+    const updatedCustom = [...(content.customCategories || []), trimmed];
+    const updatedContent = { ...content, customCategories: updatedCustom };
+    setContent(updatedContent);
+    storage.saveContent(updatedContent);
+    apiClient.saveContent(updatedContent).catch((e) => console.error(e));
+    cloudDb.saveSiteContent(updatedContent).catch((e) => console.warn(e));
+    setSelectedCategory(trimmed);
+    setToastMessage(`Category "${trimmed}" created successfully!`);
+    setTimeout(() => setToastMessage(null), 4000);
+    return true;
+  };
+
+  const handleEditCategory = async (oldName: string, newName: string): Promise<boolean> => {
+    const trimmedNew = newName.trim();
+    if (!trimmedNew || trimmedNew.toLowerCase() === oldName.toLowerCase()) return false;
+
+    let count = 0;
+    const updatedProducts = products.map((p) => {
+      if ((p.category || '').toLowerCase() === oldName.toLowerCase()) {
+        count++;
+        return { ...p, category: trimmedNew, updatedAt: Date.now() };
+      }
+      return p;
+    });
+
+    const existingCustom = content.customCategories || [];
+    const updatedCustom = existingCustom.map((c) =>
+      c.toLowerCase() === oldName.toLowerCase() ? trimmedNew : c
+    );
+    if (!updatedCustom.some((c) => c.toLowerCase() === trimmedNew.toLowerCase())) {
+      updatedCustom.push(trimmedNew);
+    }
+    const updatedContent = { ...content, customCategories: updatedCustom };
+
+    setProducts(updatedProducts);
+    setContent(updatedContent);
+    storage.saveProducts(updatedProducts);
+    storage.saveContent(updatedContent);
+    apiClient.saveProducts(updatedProducts).catch((e) => console.error(e));
+    apiClient.saveContent(updatedContent).catch((e) => console.error(e));
+    cloudDb.saveAllProducts(updatedProducts).catch((e) => console.warn(e));
+    cloudDb.saveSiteContent(updatedContent).catch((e) => console.warn(e));
+
+    if (selectedCategory.toLowerCase() === oldName.toLowerCase()) {
+      setSelectedCategory(trimmedNew);
+    }
+
+    setToastMessage(`Renamed category to "${trimmedNew}" (${count} products updated).`);
+    setTimeout(() => setToastMessage(null), 4000);
+    return true;
+  };
+
+  const handleDeleteCategory = async (catName: string): Promise<boolean> => {
+    const prodsInCat = products.filter(
+      (p) => (p.category || '').toLowerCase() === catName.toLowerCase()
+    );
+    let updatedProducts = products;
+    if (prodsInCat.length > 0) {
+      updatedProducts = products.map((p) =>
+        (p.category || '').toLowerCase() === catName.toLowerCase()
+          ? { ...p, category: 'Wedding Bands & Rings', updatedAt: Date.now() }
+          : p
+      );
+      setProducts(updatedProducts);
+      storage.saveProducts(updatedProducts);
+      apiClient.saveProducts(updatedProducts).catch((e) => console.error(e));
+      cloudDb.saveAllProducts(updatedProducts).catch((e) => console.warn(e));
+    }
+
+    const updatedCustom = (content.customCategories || []).filter(
+      (c) => c.toLowerCase() !== catName.toLowerCase()
+    );
+    const updatedContent = { ...content, customCategories: updatedCustom };
+    setContent(updatedContent);
+    storage.saveContent(updatedContent);
+    apiClient.saveContent(updatedContent).catch((e) => console.error(e));
+    cloudDb.saveSiteContent(updatedContent).catch((e) => console.warn(e));
+
+    if (selectedCategory.toLowerCase() === catName.toLowerCase()) {
+      setSelectedCategory('All Jewelry');
+    }
+
+    setToastMessage(`Category "${catName}" removed successfully.`);
+    setTimeout(() => setToastMessage(null), 4000);
+    return true;
   };
 
   // Bulk save products
@@ -353,6 +449,9 @@ export default function App() {
           onSaveProduct={handleSaveSingleProduct}
           onAddProduct={handleAddSingleProduct}
           onDeleteProduct={handleDeleteSingleProduct}
+          onAddCategory={handleAddCategory}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
           onOpenAdminConsole={() => setAdminDashboardOpen(true)}
         />
       </main>
@@ -388,6 +487,7 @@ export default function App() {
           content={content}
           isAdmin={isAdmin}
           onSaveProduct={handleSaveSingleProduct}
+          onDeleteProduct={handleDeleteSingleProduct}
           categories={activeCategories}
         />
       )}

@@ -12,7 +12,8 @@ import {
   Save,
   Upload,
   RefreshCw,
-  Plus
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { Product, SiteContent } from '../types';
 
@@ -25,34 +26,14 @@ interface ProductDetailModalProps {
   content: SiteContent;
   isAdmin?: boolean;
   onSaveProduct?: (product: Product) => Promise<boolean>;
+  onDeleteProduct?: (productId: string) => Promise<boolean>;
   categories?: string[];
 }
 
-// Requirement 6: Back page description of each product: remove a) Key feature b) Product Detail
-const cleanBackpageDescription = (rawHtml?: string, fallbackDesc?: string): string => {
+// Product description formatting: preserves full original product information & details
+const getFullProductDescription = (rawHtml?: string, fallbackDesc?: string): string => {
   if (!rawHtml && !fallbackDesc) return '';
-  let text = rawHtml || fallbackDesc || '';
-
-  // 1. Remove sections with "Product Detail" or "Product Details" or "Key feature" or "Key features"
-  text = text.replace(/<h[1-6][^>]*>[\s\S]*?(?:Product\s*Details?|Key\s*Features?)[\s\S]*?<\/h[1-6]>[\s\S]*?(?:<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>|<p[\s\S]*?<\/p>)?/gi, '');
-  text = text.replace(/<(?:strong|b)[^>]*>[\s\S]*?(?:Product\s*Details?|Key\s*Features?)[\s\S]*?<\/(?:strong|b)>[\s\S]*?(?:<ul[\s\S]*?<\/ul>|<ol[\s\S]*?<\/ol>|<br\s*\/?>[\s\S]*?<\/p>)?/gi, '');
-  text = text.replace(/(?:Product\s*Details?|Key\s*Features?):?[\s\S]*?(?:Brand|Style|Color|Stone|Setting|Ring Type|Band Finish|Marking|For|Occasions?)[\s\S]*?(?:<\/p>|$)/gi, '');
-  text = text.replace(/<ul>[\s\S]*?<\/ul>/gi, '');
-  text = text.replace(/<ol>[\s\S]*?<\/ol>/gi, '');
-
-  // 2. Remove any lingering Item code mentions
-  text = text.replace(/(?:Item\s*Code|ItemCode|Code):\s*[^\s<]+/gi, '');
-
-  // 3. Strip empty paragraphs
-  text = text.replace(/<p>\s*(?:&nbsp;|\s)*<\/p>/gi, '');
-  text = text.trim();
-
-  // If text became empty after removing Product Details / Key Features, fallback to refined narrative
-  if (!text || text.replace(/<[^>]*>/g, '').trim().length < 5) {
-    return `<p>An authentic handcrafted fine jewelry creation from Moonlit Jewelry, designed with exquisite precious metals and timeless elegance.</p>`;
-  }
-
-  return text;
+  return rawHtml || fallbackDesc || '';
 };
 
 export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
@@ -62,6 +43,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   content,
   isAdmin = false,
   onSaveProduct,
+  onDeleteProduct,
   categories
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -192,6 +174,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     }
   };
 
+  // Delete product record handler
+  const handleDeleteRecord = async () => {
+    if (!onDeleteProduct || !product) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${product.name}" (Article No: ${product.articleNo})?`
+    );
+    if (!confirmed) return;
+
+    setIsSaving(true);
+    const success = await onDeleteProduct(product.id);
+    setIsSaving(false);
+
+    if (success) {
+      onClose();
+    } else {
+      setSaveSuccess(false);
+      setSaveMessage('Failed to delete record. Please check connection.');
+    }
+  };
+
   const allCategoriesList = categories && categories.length > 0
     ? categories.filter((c) => c !== 'All Jewelry' && c !== 'Complimentary Services')
     : [
@@ -203,7 +205,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         'Pearl & Polki Jewelry'
       ];
 
-  const sanitizedDescription = cleanBackpageDescription(currentProduct.description, currentProduct.shortDescription);
+  const productDescription = getFullProductDescription(currentProduct.description, currentProduct.shortDescription);
 
   return (
     <div
@@ -225,21 +227,33 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           <div className="flex items-center gap-2">
             {/* Admin toggle between preview and edit mode on detail page */}
             {isAdmin && (
-              <button
-                onClick={() => {
-                  setIsEditing(!isEditing);
-                  setSaveMessage(null);
-                }}
-                className={`px-3 py-1 text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                  isEditing
-                    ? 'bg-black text-white border-black'
-                    : 'bg-[#FDFCF9] hover:bg-black hover:text-white text-black border-black'
-                }`}
-                title="Toggle Edit Mode on detail page"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>{isEditing ? 'Editing Mode' : 'Edit This Record'}</span>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    setIsEditing(!isEditing);
+                    setSaveMessage(null);
+                  }}
+                  className={`px-3 py-1 text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                    isEditing
+                      ? 'bg-black text-white border-black'
+                      : 'bg-[#FDFCF9] hover:bg-black hover:text-white text-black border-black'
+                  }`}
+                  title="Toggle Edit Mode on detail page"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>{isEditing ? 'Editing Mode' : 'Edit This Record'}</span>
+                </button>
+
+                <button
+                  onClick={handleDeleteRecord}
+                  disabled={isSaving}
+                  className="px-2.5 py-1 text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer border border-red-600 bg-red-50 hover:bg-red-600 text-red-700 hover:text-white"
+                  title="Delete this piece permanently"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Delete Piece</span>
+                </button>
+              </>
             )}
 
             <button
@@ -478,7 +492,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <div className="space-y-4 mb-6 text-xs sm:text-sm font-sans text-black">
                   <div className="flex items-center justify-between border-b border-black pb-1">
                     <h4 className="font-serif text-base font-bold text-black">
-                      Jewelry Information
+                      Product Information
                     </h4>
                     {isAdmin && (
                       <button
@@ -657,7 +671,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                   {!isEditing ? (
                     <div
                       className="text-xs sm:text-sm text-black font-sans leading-relaxed prose prose-stone max-w-none font-medium [&_*]:text-black"
-                      dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
+                      dangerouslySetInnerHTML={{ __html: productDescription }}
                     />
                   ) : (
                     <div>
@@ -698,6 +712,17 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                           <span>Save Record</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleDeleteRecord}
+                      disabled={isSaving}
+                      className="px-4 py-3 bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-600 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Permanently delete this piece"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete</span>
                     </button>
 
                     <button

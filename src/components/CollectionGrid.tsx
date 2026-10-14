@@ -56,7 +56,10 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [addCategoryName, setAddCategoryName] = useState('');
   const [isEditingCategory, setIsEditingCategory] = useState(false);
+  const [targetCategoryToEdit, setTargetCategoryToEdit] = useState('');
   const [editCategoryName, setEditCategoryName] = useState('');
+  const [isDeletingCategoryModal, setIsDeletingCategoryModal] = useState(false);
+  const [targetCategoryToDelete, setTargetCategoryToDelete] = useState('');
   const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   // Add new product record form state in admin mode
@@ -182,29 +185,33 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
 
   const handleSaveEditCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!onEditCategory || !editCategoryName.trim()) return;
+    const source = targetCategoryToEdit || (selectedCategory !== 'All Jewelry' ? selectedCategory : (categoriesList.find((c) => c !== 'All Jewelry') || 'Wedding Bands & Rings'));
+    if (!onEditCategory || !editCategoryName.trim() || !source) return;
     setIsSavingCategory(true);
-    const ok = await onEditCategory(selectedCategory, editCategoryName.trim());
+    const ok = await onEditCategory(source, editCategoryName.trim());
     setIsSavingCategory(false);
     if (ok) {
       setIsEditingCategory(false);
     }
   };
 
-  const handleConfirmDeleteCategory = async () => {
+  const handleConfirmDeleteCategory = async (catToDelete?: string) => {
     if (!onDeleteCategory) return;
+    const cat = catToDelete || targetCategoryToDelete || (selectedCategory !== 'All Jewelry' ? selectedCategory : '');
+    if (!cat || cat === 'All Jewelry') return;
     const count = products.filter(
-      (p) => (p.category || '').toLowerCase() === selectedCategory.toLowerCase()
+      (p) => (p.category || '').toLowerCase() === cat.toLowerCase()
     ).length;
     const msg =
       count > 0
-        ? `Are you sure you want to delete category "${selectedCategory}"? ${count} product(s) in this category will be moved to "Wedding Bands & Rings".`
-        : `Are you sure you want to delete category "${selectedCategory}"?`;
+        ? `Are you sure you want to delete category "${cat}"? ${count} product(s) in this category will be preserved and moved to "Wedding Bands & Rings".`
+        : `Are you sure you want to delete category "${cat}"?`;
     if (window.confirm(msg)) {
       setIsSavingCategory(true);
-      const ok = await onDeleteCategory(selectedCategory);
+      const ok = await onDeleteCategory(cat);
       setIsSavingCategory(false);
       if (ok) {
+        setIsDeletingCategoryModal(false);
         onSelectCategory('All Jewelry');
       }
     }
@@ -313,38 +320,106 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
     <section id="collection-grid" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
       {/* Admin Mode Control Bar on Website */}
       {isAdmin && (
-        <div className="mb-6 bg-[#FAF6EE] border-2 border-[#88641C] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div className="mb-6 bg-[#FAF6EE] border-2 border-[#88641C] p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
             <div>
-              <span className="text-xs font-sans font-bold uppercase tracking-wider text-[#44331C]">
-                Admin Catalog Mode Active
-              </span>
-              <p className="text-[11px] text-[#7E6649] font-sans">
-                Manage Categories & Products with Add, Edit, and Delete options. Click any piece to edit details with Save button.
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-sans font-bold uppercase tracking-wider text-[#44331C]">
+                  Admin Edit Mode
+                </span>
+                <span className="text-[10px] px-2 py-0.5 bg-[#88641C] text-[#FAF6EE] font-bold uppercase tracking-wider">
+                  Category & Product Management
+                </span>
+              </div>
+              <p className="text-[11px] text-[#7E6649] font-sans mt-0.5">
+                Category Editing options are first, followed by Product controls. Add, Edit, or Delete with direct Save buttons.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
-              onClick={handleOpenAddRecord}
-              className="flex-1 sm:flex-initial px-4 py-2 bg-black hover:bg-[#88641C] text-white text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
-            >
-              <Plus className="w-4 h-4 text-white" />
-              <span>+ Add Product</span>
-            </button>
-
-            {onOpenAdminConsole && (
+          {/* Primary Actions: Category Editing Button FIRST, then Product Button */}
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+            {/* 1. Category Editing Button (FIRST) */}
+            <div className="flex items-center gap-1.5 p-1 bg-white border border-[#DECFA9] shadow-2xs">
               <button
-                onClick={onOpenAdminConsole}
-                className="px-3 py-2 bg-[#FAF6EE] hover:bg-[#EBDCB4] text-[#5A4112] border border-[#DECFA9] text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                title="Open Admin Console for full catalog management"
+                type="button"
+                onClick={() => {
+                  const target =
+                    selectedCategory && selectedCategory !== 'All Jewelry'
+                      ? selectedCategory
+                      : (categoriesList.find((c) => c !== 'All Jewelry') || 'Wedding Bands & Rings');
+                  setTargetCategoryToEdit(target);
+                  setEditCategoryName(target);
+                  setIsEditingCategory(true);
+                }}
+                className="px-3.5 py-2 bg-[#7E5C1E] hover:bg-[#684A14] text-white text-xs font-sans font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                title="Category Editing: Add, Rename, or Manage Categories"
               >
-                <Settings className="w-3.5 h-3.5" />
-                <span className="hidden md:inline">Catalog Admin</span>
+                <FolderPlus className="w-4 h-4 text-[#F5EACB]" />
+                <span>Category Editing</span>
               </button>
-            )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  setAddCategoryName('');
+                  setIsAddingCategory(true);
+                }}
+                className="px-2.5 py-2 bg-[#FAF6EE] hover:bg-[#EBDCB4] text-[#5A4112] text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                title="Add a new jewelry category"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#88641C]" />
+                <span className="hidden sm:inline">Add</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target =
+                    selectedCategory && selectedCategory !== 'All Jewelry'
+                      ? selectedCategory
+                      : (categoriesList.find((c) => c !== 'All Jewelry') || 'Wedding Bands & Rings');
+                  setTargetCategoryToEdit(target);
+                  setEditCategoryName(target);
+                  setIsEditingCategory(true);
+                }}
+                className="px-2.5 py-2 bg-[#FAF6EE] hover:bg-[#EBDCB4] text-[#5A4112] text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                title="Edit / Rename Category"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#88641C]" />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target =
+                    selectedCategory && selectedCategory !== 'All Jewelry'
+                      ? selectedCategory
+                      : (categoriesList.find((c) => c !== 'All Jewelry') || 'Wedding Bands & Rings');
+                  setTargetCategoryToDelete(target);
+                  setIsDeletingCategoryModal(true);
+                }}
+                className="px-2 py-2 bg-red-50 hover:bg-red-700 text-red-700 hover:text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                title="Delete Category"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-current" />
+              </button>
+            </div>
+
+            {/* 2. Product Button (THEN) */}
+            <div className="flex items-center gap-1.5 p-1 bg-white border border-[#DECFA9] shadow-2xs">
+              <button
+                type="button"
+                onClick={handleOpenAddRecord}
+                className="px-4 py-2 bg-black hover:bg-[#88641C] text-white text-xs font-sans font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                title="Add a new jewelry product record"
+              >
+                <Plus className="w-4 h-4 text-white" />
+                <span>+ Add Product</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -581,6 +656,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
               <>
                 <button
                   onClick={() => {
+                    setTargetCategoryToEdit(selectedCategory);
                     setEditCategoryName(selectedCategory);
                     setIsEditingCategory(true);
                   }}
@@ -592,7 +668,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
                 </button>
 
                 <button
-                  onClick={handleConfirmDeleteCategory}
+                  onClick={() => handleConfirmDeleteCategory(selectedCategory)}
                   disabled={isSavingCategory}
                   className="px-3 py-1.5 bg-red-50 hover:bg-red-700 text-red-700 hover:text-white border border-red-300 hover:border-red-700 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
                   title={`Delete category "${selectedCategory}"`}
@@ -685,6 +761,26 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
             <form onSubmit={handleSaveEditCategory} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-black mb-1">
+                  Category to Edit / Rename *
+                </label>
+                <select
+                  value={targetCategoryToEdit || (selectedCategory !== 'All Jewelry' ? selectedCategory : (categoriesList.find((c) => c !== 'All Jewelry') || ''))}
+                  onChange={(e) => {
+                    setTargetCategoryToEdit(e.target.value);
+                    setEditCategoryName(e.target.value);
+                  }}
+                  className="w-full bg-white border border-black px-3 py-2 text-xs font-sans text-black font-semibold focus:outline-none mb-3"
+                >
+                  {categoriesList
+                    .filter((c) => c !== 'All Jewelry')
+                    .map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                </select>
+
+                <label className="block text-xs font-bold uppercase tracking-wider text-black mb-1">
                   New Category Name *
                 </label>
                 <input
@@ -697,7 +793,7 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
                   className="w-full bg-white border border-black px-3 py-2 text-xs font-sans text-black font-semibold focus:outline-none"
                 />
                 <p className="text-[10px] text-stone-600 mt-1">
-                  All products currently under "{selectedCategory}" will be updated to the new name.
+                  All products currently under "{targetCategoryToEdit || selectedCategory}" will be updated to the new name.
                 </p>
               </div>
 
@@ -719,6 +815,72 @@ export const CollectionGrid: React.FC<CollectionGridProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Category */}
+      {isAdmin && isDeletingCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-[#FAF6EE] border-2 border-red-700 p-6 w-full max-w-md shadow-2xl animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-red-200 pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-4 h-4 text-red-700" />
+                <h3 className="font-serif text-base font-bold text-red-900 uppercase tracking-wider">
+                  Delete Category
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsDeletingCategoryModal(false)}
+                className="text-stone-500 hover:text-black cursor-pointer p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-black mb-1">
+                  Select Category to Delete *
+                </label>
+                <select
+                  value={targetCategoryToDelete || (selectedCategory !== 'All Jewelry' ? selectedCategory : (categoriesList.find((c) => c !== 'All Jewelry') || ''))}
+                  onChange={(e) => setTargetCategoryToDelete(e.target.value)}
+                  className="w-full bg-white border border-black px-3 py-2 text-xs font-sans text-black font-semibold focus:outline-none mb-3"
+                >
+                  {categoriesList
+                    .filter((c) => c !== 'All Jewelry')
+                    .map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                </select>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed font-sans">
+                  <strong>Safe Deletion:</strong> Any jewelry items in this category will not be lost. They will be automatically moved to <em>"Wedding Bands & Rings"</em>.
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeletingCategoryModal(false)}
+                  className="px-4 py-2 bg-white hover:bg-stone-200 text-black border border-black text-xs font-bold uppercase tracking-wider cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingCategory}
+                  onClick={() => handleConfirmDeleteCategory(targetCategoryToDelete)}
+                  className="px-5 py-2 bg-red-700 hover:bg-red-800 text-white text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-60"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Category</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

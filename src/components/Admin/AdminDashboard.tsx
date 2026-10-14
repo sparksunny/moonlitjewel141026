@@ -51,7 +51,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onClose,
   onLogout
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'inquiries'>('products');
+  const [activeTab, setActiveTab] = useState<'categories' | 'products' | 'inquiries'>('categories');
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [content, setContent] = useState<SiteContent>(initialContent);
   const [inquiries, setInquiries] = useState<CustomerInquiry[]>(() => storage.getInquiries());
@@ -563,8 +563,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Admin Tab Navigation */}
       <div className="bg-[#EDE1BD] text-[#7E5C1E] border-b border-[#DECFA9] px-6 flex items-center gap-2 overflow-x-auto">
         {[
-          { id: 'products', label: 'Products Catalog', icon: List, count: products.length },
-          { id: 'categories', label: 'Categories', icon: Layers, count: allCategories.length },
+          { id: 'categories', label: 'Category Editing', icon: Layers, count: allCategories.length },
+          { id: 'products', label: 'Product Catalog', icon: List, count: products.length },
           { id: 'inquiries', label: 'Customer Inquiries', icon: MessageSquare, count: inquiries.length }
         ].map((tab) => {
           const Icon = tab.icon;

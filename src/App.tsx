@@ -128,21 +128,29 @@ export default function App() {
 
   const handleOpenAdmin = () => {
     if (isAdmin) {
-      setAdminDashboardOpen(true);
+      scrollToCollection();
     } else {
       setAdminLoginOpen(true);
     }
   };
 
-  // Action 1: Open website / admin dashboard allowing editing anything on this website as in previous mode
+  // Direct Website Entry on Admin Login: Immediately close login modal and scroll straight to live catalog with active edit controls
   const handleAdminLoginSuccess = () => {
     authService.login(ADMIN_PASSWORD);
     setIsAdmin(true);
     setAdminLoginOpen(false);
-    setAdminDashboardOpen(true); // Allow editing anything on this website as in previous mode
+    setAdminDashboardOpen(false); // Do not open intrusive pop-up dashboard
 
-    setToastMessage('Admin Mode Active: Add, Edit, or Delete options available for Categories & Products.');
-    setTimeout(() => setToastMessage(null), 4500);
+    // Scroll directly to the live catalog with active edit controls
+    setTimeout(() => {
+      const el = document.getElementById('collection-grid');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 120);
+
+    setToastMessage('Admin Access Active: Direct live website edit controls enabled.');
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
   // Action 4: Logout handler - removes authentication from this device and vanishes Logout button

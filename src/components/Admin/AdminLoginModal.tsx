@@ -44,12 +44,9 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     if (res.success && res.message === 'approved') {
       setStatus('approved');
       setLoading(false);
-      // Brief pause to show "approved" before opening dashboard
-      setTimeout(() => {
-        setPassword('');
-        setStatus('idle');
-        onSuccess();
-      }, 700);
+      setPassword('');
+      setStatus('idle');
+      onSuccess();
     } else {
       setStatus('mismatch');
       setLoading(false);

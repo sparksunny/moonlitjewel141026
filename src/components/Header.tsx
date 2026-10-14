@@ -95,15 +95,15 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="font-sans">Real Jewelry · Precious Metals · Bespoke Craftsmanship</span>
           </div>
           <div className="mx-auto sm:mx-0 flex items-center gap-2.5 sm:gap-4 text-[11px] font-sans">
-            {/* If logged in from admin, allow opening Admin Dashboard to manage Products and Categories */}
+            {/* If logged in from admin, allow jumping to Category & Product Editing on website */}
             {isAdmin && onOpenDashboard && (
               <button
                 onClick={onOpenDashboard}
                 className="px-2.5 py-0.5 bg-[#88641C] hover:bg-black text-white transition-colors text-[10px] font-sans font-bold tracking-[0.16em] uppercase flex items-center gap-1.5 shadow-2xs cursor-pointer border border-[#88641C]"
-                title="Manage Products & Categories Catalog"
+                title="Go to Category & Product Edit Mode on website"
               >
                 <Settings className="w-3 h-3 text-white" />
-                <span className="hidden sm:inline">Catalog Admin</span>
+                <span className="hidden sm:inline">Edit Mode</span>
               </button>
             )}
 
